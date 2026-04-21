@@ -63,6 +63,12 @@ export interface KeyboardSettings {
   nextAgent?: KeyboardShortcutBinding;
   prevAgent?: KeyboardShortcutBinding;
   openInEditor?: KeyboardShortcutBinding;
+  newChat?: KeyboardShortcutBinding;
+  closeChat?: KeyboardShortcutBinding;
+  nextChat?: KeyboardShortcutBinding;
+  prevChat?: KeyboardShortcutBinding;
+  reopenClosedChat?: KeyboardShortcutBinding;
+  commandPaletteAlt?: KeyboardShortcutBinding;
 }
 
 export interface InterfaceSettings {
@@ -143,8 +149,8 @@ function getPlatformTaskSwitchDefaults(): { next: ShortcutBinding; prev: Shortcu
   }
 
   return {
-    next: { key: 'Tab', modifier: 'ctrl' },
-    prev: { key: 'Tab', modifier: 'ctrl+shift' },
+    next: { key: ']', modifier: 'ctrl+shift' },
+    prev: { key: '[', modifier: 'ctrl+shift' },
   };
 }
 
@@ -192,8 +198,6 @@ const DEFAULT_SETTINGS: AppSettings = {
     settings: { key: ',', modifier: 'cmd' },
     toggleLeftSidebar: { key: 'b', modifier: 'cmd' },
     toggleRightSidebar: { key: '.', modifier: 'cmd' },
-    toggleTheme: { key: 't', modifier: 'cmd' },
-    toggleKanban: { key: 'p', modifier: 'cmd' },
     toggleEditor: { key: 'e', modifier: 'cmd' },
     nextProject: TASK_SWITCH_DEFAULTS.next,
     prevProject: TASK_SWITCH_DEFAULTS.prev,
@@ -201,6 +205,14 @@ const DEFAULT_SETTINGS: AppSettings = {
     nextAgent: { key: ']', modifier: 'cmd+shift' },
     prevAgent: { key: '[', modifier: 'cmd+shift' },
     openInEditor: { key: 'o', modifier: 'cmd' },
+    toggleTheme: { key: 'l', modifier: 'cmd+shift' },
+    toggleKanban: { key: 'k', modifier: 'cmd+shift' },
+    newChat: { key: 't', modifier: 'cmd' },
+    closeChat: { key: 'w', modifier: 'cmd' },
+    nextChat: { key: 'Tab', modifier: 'ctrl' },
+    prevChat: { key: 'Tab', modifier: 'ctrl+shift' },
+    reopenClosedChat: { key: 't', modifier: 'cmd+shift' },
+    commandPaletteAlt: { key: 'p', modifier: 'cmd+shift' },
   },
   interface: {
     autoRightSidebarBehavior: false,
@@ -518,8 +530,6 @@ export function normalizeSettings(input: AppSettings): AppSettings {
       keyboard.toggleRightSidebar,
       DEFAULT_SETTINGS.keyboard!.toggleRightSidebar!
     ),
-    toggleTheme: normalizeBinding(keyboard.toggleTheme, DEFAULT_SETTINGS.keyboard!.toggleTheme!),
-    toggleKanban: normalizeBinding(keyboard.toggleKanban, DEFAULT_SETTINGS.keyboard!.toggleKanban!),
     toggleEditor: normalizeBinding(keyboard.toggleEditor, DEFAULT_SETTINGS.keyboard!.toggleEditor!),
     nextProject: normalizeBinding(keyboard.nextProject, DEFAULT_SETTINGS.keyboard!.nextProject!),
     prevProject: normalizeBinding(keyboard.prevProject, DEFAULT_SETTINGS.keyboard!.prevProject!),
@@ -527,7 +537,27 @@ export function normalizeSettings(input: AppSettings): AppSettings {
     nextAgent: normalizeBinding(keyboard.nextAgent, DEFAULT_SETTINGS.keyboard!.nextAgent!),
     prevAgent: normalizeBinding(keyboard.prevAgent, DEFAULT_SETTINGS.keyboard!.prevAgent!),
     openInEditor: normalizeBinding(keyboard.openInEditor, DEFAULT_SETTINGS.keyboard!.openInEditor!),
+    newChat: normalizeBinding(keyboard.newChat, DEFAULT_SETTINGS.keyboard!.newChat!),
+    closeChat: normalizeBinding(keyboard.closeChat, DEFAULT_SETTINGS.keyboard!.closeChat!),
+    nextChat: normalizeBinding(keyboard.nextChat, DEFAULT_SETTINGS.keyboard!.nextChat!),
+    prevChat: normalizeBinding(keyboard.prevChat, DEFAULT_SETTINGS.keyboard!.prevChat!),
+    reopenClosedChat: normalizeBinding(
+      keyboard.reopenClosedChat,
+      DEFAULT_SETTINGS.keyboard!.reopenClosedChat!
+    ),
+    commandPaletteAlt: normalizeBinding(
+      keyboard.commandPaletteAlt,
+      DEFAULT_SETTINGS.keyboard!.commandPaletteAlt!
+    ),
   };
+  out.keyboard.toggleTheme = normalizeBinding(
+    keyboard.toggleTheme,
+    DEFAULT_SETTINGS.keyboard!.toggleTheme!
+  );
+  out.keyboard.toggleKanban = normalizeBinding(
+    keyboard.toggleKanban,
+    DEFAULT_SETTINGS.keyboard!.toggleKanban!
+  );
   const platformTaskDefaults = getPlatformTaskSwitchDefaults();
   const isLegacyArrowPair =
     isBinding(out.keyboard.nextProject!, 'cmd', 'ArrowRight') &&
@@ -538,6 +568,16 @@ export function normalizeSettings(input: AppSettings): AppSettings {
   if (isLegacyArrowPair || (IS_MAC && isLegacyTabPair)) {
     out.keyboard.nextProject = platformTaskDefaults.next;
     out.keyboard.prevProject = platformTaskDefaults.prev;
+  }
+  // Drop legacy default Cmd+T = toggleTheme and Cmd+P = toggleKanban.
+  // Users who deliberately customized these keep their bindings (handled
+  // above). Only stored defaults are removed so Cmd+T and Cmd+P are freed
+  // for the new newChat and commandPaletteAlt shortcuts.
+  if (isBinding(out.keyboard.toggleTheme, 'cmd', 't')) {
+    delete out.keyboard.toggleTheme;
+  }
+  if (isBinding(out.keyboard.toggleKanban, 'cmd', 'p')) {
+    delete out.keyboard.toggleKanban;
   }
 
   // Interface

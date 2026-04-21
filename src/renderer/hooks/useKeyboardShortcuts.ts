@@ -22,7 +22,13 @@ export type ShortcutSettingsKey =
   | 'newTask'
   | 'nextAgent'
   | 'prevAgent'
-  | 'openInEditor';
+  | 'openInEditor'
+  | 'newChat'
+  | 'closeChat'
+  | 'nextChat'
+  | 'prevChat'
+  | 'reopenClosedChat'
+  | 'commandPaletteAlt';
 
 export interface AppShortcut {
   key: string;
@@ -61,15 +67,15 @@ function getPlatformTaskSwitchDefaults(): { next: AppShortcut; prev: AppShortcut
 
   return {
     next: {
-      key: 'Tab',
-      modifier: 'ctrl',
+      key: ']',
+      modifier: 'ctrl+shift',
       label: 'Next Task',
       description: 'Switch to the next task',
       category: 'Navigation',
       settingsKey: 'nextProject',
     },
     prev: {
-      key: 'Tab',
+      key: '[',
       modifier: 'ctrl+shift',
       label: 'Previous Task',
       description: 'Switch to the previous task',
@@ -135,8 +141,8 @@ export const APP_SHORTCUTS: Record<string, AppShortcut> = {
   },
 
   TOGGLE_THEME: {
-    key: 't',
-    modifier: 'cmd',
+    key: 'l',
+    modifier: 'cmd+shift',
     label: 'Toggle Theme',
     description: 'Cycle through light, dark navy, and dark black themes',
     category: 'View',
@@ -144,8 +150,8 @@ export const APP_SHORTCUTS: Record<string, AppShortcut> = {
   },
 
   TOGGLE_KANBAN: {
-    key: 'p',
-    modifier: 'cmd',
+    key: 'k',
+    modifier: 'cmd+shift',
     label: 'Toggle Kanban',
     description: 'Show or hide the Kanban board',
     category: 'Navigation',
@@ -209,6 +215,60 @@ export const APP_SHORTCUTS: Record<string, AppShortcut> = {
     description: 'Open the project in the default editor',
     category: 'Navigation',
     settingsKey: 'openInEditor',
+  },
+
+  NEW_CHAT: {
+    key: 't',
+    modifier: 'cmd',
+    label: 'New Conversation',
+    description: 'Open a new conversation tab in the current task',
+    category: 'Navigation',
+    settingsKey: 'newChat',
+  },
+
+  CLOSE_CHAT: {
+    key: 'w',
+    modifier: 'cmd',
+    label: 'Close Conversation',
+    description: 'Close the active conversation tab',
+    category: 'Navigation',
+    settingsKey: 'closeChat',
+  },
+
+  NEXT_CHAT: {
+    key: 'Tab',
+    modifier: 'ctrl',
+    label: 'Next Conversation',
+    description: 'Switch to the next conversation tab',
+    category: 'Navigation',
+    settingsKey: 'nextChat',
+  },
+
+  PREV_CHAT: {
+    key: 'Tab',
+    modifier: 'ctrl+shift',
+    label: 'Previous Conversation',
+    description: 'Switch to the previous conversation tab',
+    category: 'Navigation',
+    settingsKey: 'prevChat',
+  },
+
+  REOPEN_CLOSED_CHAT: {
+    key: 't',
+    modifier: 'cmd+shift',
+    label: 'Reopen Closed Conversation',
+    description: 'Reopen the last closed conversation tab',
+    category: 'Navigation',
+    settingsKey: 'reopenClosedChat',
+  },
+
+  COMMAND_PALETTE_ALT: {
+    key: 'p',
+    modifier: 'cmd+shift',
+    label: 'Command Palette',
+    description: 'Open the command palette (VS Code / Warp alias)',
+    category: 'Navigation',
+    settingsKey: 'commandPaletteAlt',
   },
 };
 
@@ -294,6 +354,10 @@ export function getAgentTabSelectionIndex(
   if (!/^[1-9]$/.test(key)) {
     return null;
   }
+
+  // Cmd+9 means "last tab" (not ninth), matching Chrome / Warp convention.
+  // Return -1 as a sentinel; callers must interpret -1 as the last index.
+  if (key === '9') return -1;
 
   return Number(key) - 1;
 }
@@ -390,6 +454,12 @@ export function useKeyboardShortcuts(handlers: GlobalShortcutHandlers) {
       nextAgent: getEffectiveConfig(APP_SHORTCUTS.NEXT_AGENT, custom),
       prevAgent: getEffectiveConfig(APP_SHORTCUTS.PREV_AGENT, custom),
       openInEditor: getEffectiveConfig(APP_SHORTCUTS.OPEN_IN_EDITOR, custom),
+      newChat: getEffectiveConfig(APP_SHORTCUTS.NEW_CHAT, custom),
+      closeChat: getEffectiveConfig(APP_SHORTCUTS.CLOSE_CHAT, custom),
+      nextChat: getEffectiveConfig(APP_SHORTCUTS.NEXT_CHAT, custom),
+      prevChat: getEffectiveConfig(APP_SHORTCUTS.PREV_CHAT, custom),
+      reopenClosedChat: getEffectiveConfig(APP_SHORTCUTS.REOPEN_CLOSED_CHAT, custom),
+      commandPaletteAlt: getEffectiveConfig(APP_SHORTCUTS.COMMAND_PALETTE_ALT, custom),
     };
   }, [handlers.customKeyboardSettings]);
 
@@ -482,6 +552,47 @@ export function useKeyboardShortcuts(handlers: GlobalShortcutHandlers) {
         handler: () => handlers.onOpenInEditor?.(),
         priority: 'global',
         requiresClosed: true,
+      },
+      effectiveShortcuts.newChat && {
+        config: effectiveShortcuts.newChat,
+        handler: () => handlers.onNewChat?.(),
+        priority: 'global',
+        requiresClosed: true,
+        allowInInput: true,
+      },
+      effectiveShortcuts.closeChat && {
+        config: effectiveShortcuts.closeChat,
+        handler: () => handlers.onCloseChat?.(),
+        priority: 'global',
+        requiresClosed: true,
+        allowInInput: true,
+      },
+      effectiveShortcuts.nextChat && {
+        config: effectiveShortcuts.nextChat,
+        handler: () => handlers.onNextChat?.(),
+        priority: 'global',
+        requiresClosed: true,
+        allowInInput: true,
+      },
+      effectiveShortcuts.prevChat && {
+        config: effectiveShortcuts.prevChat,
+        handler: () => handlers.onPrevChat?.(),
+        priority: 'global',
+        requiresClosed: true,
+        allowInInput: true,
+      },
+      effectiveShortcuts.reopenClosedChat && {
+        config: effectiveShortcuts.reopenClosedChat,
+        handler: () => handlers.onReopenClosedChat?.(),
+        priority: 'global',
+        requiresClosed: true,
+        allowInInput: true,
+      },
+      effectiveShortcuts.commandPaletteAlt && {
+        config: effectiveShortcuts.commandPaletteAlt,
+        handler: () => handlers.onCommandPaletteAlt?.(),
+        priority: 'global',
+        isCommandPalette: true,
       },
     ];
     const shortcuts: ShortcutMapping[] = maybeShortcuts.filter(
